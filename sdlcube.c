@@ -4,7 +4,7 @@
 struct Vertex {
   float x;
   float y;
-  int z;
+  float z;
 };
 
 FILE * fp;
@@ -30,15 +30,13 @@ convert_graph_to_sdl(float * x, float * y) {
   *y = 300 - *y;
 }
 
-void rotate_vertex_clockwise(float * x, float * y, float degrees) {
+void rotate_vertex_clockwise_z(float * x, float * y, float degrees) {
   float angle_radians = degrees * (M_PI/180);
   float sin_angle = sin(angle_radians);
   float cos_angle = cos(angle_radians);
   float tx = *x;
   float ty = *y;
-  
-  /* *x -= 400; */
-  /* *y -= 300; */
+
   convert_sdl_to_graph(&tx, &ty);
   fprintf(fp, "s=%f c=%f\n", sin_angle, cos_angle);
   fprintf(fp, "sdl: x=%g - y=%g graph: x=%g - y=%g\n", *x, *y, tx, ty);
@@ -53,8 +51,7 @@ void rotate_vertex_clockwise(float * x, float * y, float degrees) {
 
   fprintf(fp, "txc=%g tys=%g txs=%g tyc=%g rtx=%g rty=%g\n", txc, tys, txs, tyc, tx, ty);
   fprintf(fp, "tx=%g ty=%g\n", tx, ty);
-  /* *x += 400; */
-  /* *y += 300; */
+
   float sx = tx;
   float sy = ty;
   convert_graph_to_sdl(&tx, &ty);
@@ -64,10 +61,59 @@ void rotate_vertex_clockwise(float * x, float * y, float degrees) {
   *y = ty;
 }
 
+void rotate_vertex_clockwise_y(float * x, float * z, float degrees) {
+  float angle_radians = degrees * (M_PI/180);
+  float sin_angle = sin(angle_radians);
+  float cos_angle = cos(angle_radians);
+  float tx = *x;
+  float tz = *z;
+
+  tx = tx - 400;
+  fprintf(fp, "s=%f c=%f\n", sin_angle, cos_angle);
+  fprintf(fp, "sdl: x=%g - z=%g graph: x=%g - z=%g\n", *x, *z, tx, tz);
+
+  float txc = tx * cos_angle;
+  float tzs = tz * sin_angle;
+  float txs = tx * sin_angle;
+  float tzc = tz * cos_angle;
+
+  tx = tzs + txc;
+  tz = tzc - txs;
+
+  fprintf(fp, "txc=%g tzs=%g txs=%g tzc=%g rtx=%g rtz=%g\n", txc, tzs, txs, tzc, tx, tz);
+  fprintf(fp, "tx=%g tz=%g\n", tx, tz);
+
+  *x = tx + 400;
+  *z = tz;
+}
+
+void rotate_vertex_clockwise_x(float * y, float * z, float degrees) {
+  float angle_radians = degrees * (M_PI/180);
+  float sin_angle = sin(angle_radians);
+  float cos_angle = cos(angle_radians);
+  float ty = *y;
+  float tz = *z;
+
+  ty = 300 - ty;
+
+  float tyc = ty * cos_angle;
+  float tzs = tz * sin_angle;
+  float tys = ty * sin_angle;
+  float tzc = tz * cos_angle;
+
+  ty = tyc - tzs;
+  tz = tys + tzc;
+
+  *y = 300 - ty;
+  *z = tz;
+}
+
 void rotate(struct Vertex face[4]) {
   int i;
   for(i = 0; i < 4; ++i) {
-    rotate_vertex_clockwise(&face[i].x, &face[i].y, 30);
+    rotate_vertex_clockwise_z(&face[i].x, &face[i].y, 1);
+    rotate_vertex_clockwise_y(&face[i].x, &face[i].z, 1);
+    rotate_vertex_clockwise_x(&face[i].y, &face[i].z, 1);
   }
 }
 
@@ -82,15 +128,47 @@ int main() {
 
   SDL_bool done = SDL_FALSE;
 
-  struct Vertex face[4] = {
-    {325, 225, 0},
-    {325, 375, 0},
-    {475, 375, 0},
-    {475, 225, 0}
+  struct Vertex front[4] = {
+    {325, 225, 75},
+    {325, 375, 75},
+    {475, 375, 75},
+    {475, 225, 75}
   };
-   
-  /* float x = 402; */
-  /* float y = 300; */
+
+  struct Vertex back[4] = {
+    {325, 225, -75},
+    {325, 375, -75},
+    {475, 375, -75},
+    {475, 225, -75}
+  };
+
+  struct Vertex left[4] = {
+    {325, 225, -75},
+    {325, 375, -75},
+    {325, 375, 75},
+    {325, 225, 75}
+  };
+
+  struct Vertex right[4] = {
+    {475, 225, 75},
+    {475, 375, 75},
+    {475, 375, -75},
+    {475, 225, -75}
+  };
+
+  struct Vertex top[4] = {
+    {325, 225, -75},
+    {325, 225, 75},
+    {475, 225, 75},
+    {475, 225, -75}
+  };
+
+  struct Vertex bottom[4] = {
+    {325, 375, -75},
+    {325, 375, 75},
+    {475, 375, 75},
+    {475, 375, -75}
+  };
 
   while(!done) {
     SDL_Event event;
@@ -98,29 +176,39 @@ int main() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(renderer);
 
-    /* SDL_SetRenderDrawColor(renderer, 10, 0, 250, SDL_ALPHA_OPAQUE); */
-    /* SDL_RenderDrawLine(renderer, 390, 300, 410, 300); */
-    /* SDL_RenderDrawLine(renderer, 400, 290, 400, 310); */
-    
-    SDL_SetRenderDrawColor(renderer, 150, 255, 50, SDL_ALPHA_OPAQUE);
+    SDL_SetRenderDrawColor(renderer, 255, 50, 50, SDL_ALPHA_OPAQUE);
+    draw(renderer, front);
 
-    draw(renderer, face);
+    SDL_SetRenderDrawColor(renderer, 50, 255, 50, SDL_ALPHA_OPAQUE);
+    draw(renderer, back);
 
-    /* SDL_RenderDrawPoint(renderer, x, y); */
-    
+    SDL_SetRenderDrawColor(renderer, 50, 50, 255, SDL_ALPHA_OPAQUE);
+    draw(renderer, left);
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
+    draw(renderer, right);
+
+    SDL_SetRenderDrawColor(renderer, 180, 180, 180, SDL_ALPHA_OPAQUE);
+    draw(renderer, top);
+
+    SDL_SetRenderDrawColor(renderer, 20, 30, 40, SDL_ALPHA_OPAQUE);
+    draw(renderer, bottom);
+
     SDL_RenderPresent(renderer);
-    rotate(face);
-
-    /* rotate_vertex_clockwise(&x, &y, 45); */
+    rotate(front);
+    rotate(back);
+    rotate(left);
+    rotate(right);
+    rotate(top);
+    rotate(bottom);
 
     while(SDL_PollEvent(&event)) {
       if(event.type == SDL_QUIT) {
         done = SDL_TRUE;
       }
     }
-    
-    SDL_Delay(500);
-    
+
+    SDL_Delay(25);
   }
 
   if(renderer)
@@ -129,8 +217,8 @@ int main() {
     SDL_DestroyWindow(window);
 
   fclose(fp);
-  
-  SDL_Quit();  
+
+  SDL_Quit();
   return 0;
 
 }
