@@ -15,17 +15,17 @@ void draw(SDL_Renderer * renderer, struct Vertex face[4]) {
     struct Vertex vertex = face[i];
     int vertex2i = (i == 3 ? i-3 : i+1);
     struct Vertex vertex2 = face[vertex2i];
-    fprintf(fp, "x1=%g - y1=%g - x2=%g - y2=%g\n", vertex.x, vertex.y, vertex2.x, vertex2.y);
+    fprintf(fp, "x1=%g|y1=%g|x2=%g|y2=%g\n", vertex.x, vertex.y, vertex2.x, vertex2.y);
     SDL_RenderDrawLine(renderer, vertex.x, vertex.y, vertex2.x, vertex2.y);
   }
 }
 
-convert_sdl_to_graph(float * x, float * y) {
+void convert_sdl_to_graph(float * x, float * y) {
   *x = *x - 400;
   *y = 300 - *y;
 }
 
-convert_graph_to_sdl(float * x, float * y) {
+void convert_graph_to_sdl(float * x, float * y) {
   *x = *x + 400;
   *y = 300 - *y;
 }
@@ -38,8 +38,6 @@ void rotate_vertex_clockwise_z(float * x, float * y, float degrees) {
   float ty = *y;
 
   convert_sdl_to_graph(&tx, &ty);
-  fprintf(fp, "s=%f c=%f\n", sin_angle, cos_angle);
-  fprintf(fp, "sdl: x=%g - y=%g graph: x=%g - y=%g\n", *x, *y, tx, ty);
 
   float txc = tx * cos_angle;
   float tys = ty * sin_angle;
@@ -49,13 +47,9 @@ void rotate_vertex_clockwise_z(float * x, float * y, float degrees) {
   tx = txc - tys;
   ty = txs + tyc;
 
-  fprintf(fp, "txc=%g tys=%g txs=%g tyc=%g rtx=%g rty=%g\n", txc, tys, txs, tyc, tx, ty);
-  fprintf(fp, "tx=%g ty=%g\n", tx, ty);
-
   float sx = tx;
   float sy = ty;
   convert_graph_to_sdl(&tx, &ty);
-  fprintf(fp, "sdl: x=%g - y=%g graph: x=%g - y=%g\n\n\n", tx, ty, sx, sy);
 
   *x = tx;
   *y = ty;
@@ -69,8 +63,6 @@ void rotate_vertex_clockwise_y(float * x, float * z, float degrees) {
   float tz = *z;
 
   tx = tx - 400;
-  fprintf(fp, "s=%f c=%f\n", sin_angle, cos_angle);
-  fprintf(fp, "sdl: x=%g - z=%g graph: x=%g - z=%g\n", *x, *z, tx, tz);
 
   float txc = tx * cos_angle;
   float tzs = tz * sin_angle;
@@ -79,9 +71,6 @@ void rotate_vertex_clockwise_y(float * x, float * z, float degrees) {
 
   tx = tzs + txc;
   tz = tzc - txs;
-
-  fprintf(fp, "txc=%g tzs=%g txs=%g tzc=%g rtx=%g rtz=%g\n", txc, tzs, txs, tzc, tx, tz);
-  fprintf(fp, "tx=%g tz=%g\n", tx, tz);
 
   *x = tx + 400;
   *z = tz;
@@ -119,7 +108,7 @@ void rotate(struct Vertex face[4]) {
 
 int main() {
 
-  fp = fopen("/tmp/test.txt", "w+");
+  fp = fopen("/tmp/cube.log", "w+");
 
   SDL_Init(SDL_INIT_VIDEO);
 
