@@ -1,6 +1,11 @@
 #include <SDL2/SDL.h>
 #include <math.h>
 
+#define X_RESOLUTION 1600
+#define Y_RESOLUTION 900
+#define X_MID X_RESOLUTION/2
+#define Y_MID Y_RESOLUTION/2
+
 struct Vertex {
   float x;
   float y;
@@ -21,13 +26,13 @@ void draw(SDL_Renderer * renderer, struct Vertex face[4]) {
 }
 
 void convert_sdl_to_graph(float * x, float * y) {
-  *x = *x - 400;
-  *y = 300 - *y;
+  *x = *x - X_MID;
+  *y = Y_MID - *y;
 }
 
 void convert_graph_to_sdl(float * x, float * y) {
-  *x = *x + 400;
-  *y = 300 - *y;
+  *x = *x + X_MID;
+  *y = Y_MID - *y;
 }
 
 void rotate_vertex_clockwise_z(float * x, float * y, float degrees) {
@@ -62,7 +67,7 @@ void rotate_vertex_clockwise_y(float * x, float * z, float degrees) {
   float tx = *x;
   float tz = *z;
 
-  tx = tx - 400;
+  tx = tx - X_MID;
 
   float txc = tx * cos_angle;
   float tzs = tz * sin_angle;
@@ -72,7 +77,7 @@ void rotate_vertex_clockwise_y(float * x, float * z, float degrees) {
   tx = tzs + txc;
   tz = tzc - txs;
 
-  *x = tx + 400;
+  *x = tx + X_MID;
   *z = tz;
 }
 
@@ -83,7 +88,7 @@ void rotate_vertex_clockwise_x(float * y, float * z, float degrees) {
   float ty = *y;
   float tz = *z;
 
-  ty = 300 - ty;
+  ty = Y_MID - ty;
 
   float tyc = ty * cos_angle;
   float tzs = tz * sin_angle;
@@ -93,7 +98,7 @@ void rotate_vertex_clockwise_x(float * y, float * z, float degrees) {
   ty = tyc - tzs;
   tz = tys + tzc;
 
-  *y = 300 - ty;
+  *y = Y_MID - ty;
   *z = tz;
 }
 
@@ -112,51 +117,56 @@ int main() {
 
   SDL_Init(SDL_INIT_VIDEO);
 
-  SDL_Window * window = SDL_CreateWindow("Cube", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_OPENGL);
+  SDL_Window * window = SDL_CreateWindow("Cube", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, X_RESOLUTION, Y_RESOLUTION, SDL_WINDOW_OPENGL);
   SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
   SDL_bool done = SDL_FALSE;
 
+  int x_sub = X_MID-75;
+  int y_sub = Y_MID-75;
+  int x_add = X_MID+75;
+  int y_add = Y_MID+75;
+
   struct Vertex front[4] = {
-    {325, 225, 75},
-    {325, 375, 75},
-    {475, 375, 75},
-    {475, 225, 75}
+    {x_sub, y_sub, 75},
+    {x_sub, y_add, 75},
+    {x_add, y_add, 75},
+    {x_add, y_sub, 75}
   };
 
   struct Vertex back[4] = {
-    {325, 225, -75},
-    {325, 375, -75},
-    {475, 375, -75},
-    {475, 225, -75}
+    {x_sub, y_sub, -75},
+    {x_sub, y_add, -75},
+    {x_add, y_add, -75},
+    {x_add, y_sub, -75}
   };
 
   struct Vertex left[4] = {
-    {325, 225, -75},
-    {325, 375, -75},
-    {325, 375, 75},
-    {325, 225, 75}
+    {x_sub, y_sub, -75},
+    {x_sub, y_add, -75},
+    {x_sub, y_add, 75},
+    {x_sub, y_sub, 75}
   };
 
   struct Vertex right[4] = {
-    {475, 225, 75},
-    {475, 375, 75},
-    {475, 375, -75},
-    {475, 225, -75}
+    {x_add, y_sub, 75},
+    {x_add, y_add, 75},
+    {x_add, y_add, -75},
+    {x_add, y_sub, -75}
   };
 
   struct Vertex top[4] = {
-    {325, 225, -75},
-    {325, 225, 75},
-    {475, 225, 75},
-    {475, 225, -75}
+    {x_sub, y_sub, -75},
+    {x_sub, y_sub, 75},
+    {x_add, y_sub, 75},
+    {x_add, y_sub, -75}
   };
 
   struct Vertex bottom[4] = {
-    {325, 375, -75},
-    {325, 375, 75},
-    {475, 375, 75},
-    {475, 375, -75}
+    {x_sub, y_add, -75},
+    {x_sub, y_add, 75},
+    {x_add, y_add, 75},
+    {x_add, y_add, -75}
   };
 
   while(!done) {
