@@ -6,20 +6,80 @@
 #define X_MID X_RESOLUTION/2
 #define Y_MID Y_RESOLUTION/2
 
-struct Vertex {
+typedef struct Vertex {
   float x;
   float y;
   float z;
-};
+} Vertex;
+
+typedef struct Cube {
+  Vertex front[4];
+  Vertex back[4];
+  Vertex left[4];
+  Vertex right[4];
+  Vertex top[4];
+  Vertex bottom[4];
+} Cube;
 
 FILE * fp;
 
-void draw(SDL_Renderer * renderer, struct Vertex face[4]) {
+Cube create_cube(float x, float y, float z) {
+
+  float x_sub = x-75;
+  float y_sub = y-75;
+  float z_sub = z-75;
+  float x_add = x+75;
+  float y_add = y+75;
+  float z_add = z+75;
+
+  Cube cube = {
+    {
+      {x_sub, y_sub, z_add},
+      {x_sub, y_add, z_add},
+      {x_add, y_add, z_add},
+      {x_add, y_sub, z_add}
+    },
+    {
+      {x_sub, y_sub, z_sub},
+      {x_sub, y_add, z_sub},
+      {x_add, y_add, z_sub},
+      {x_add, y_sub, z_sub}
+    },
+    {
+      {x_sub, y_sub, z_sub},
+      {x_sub, y_add, z_sub},
+      {x_sub, y_add, z_add},
+      {x_sub, y_sub, z_add}
+    },
+    {
+      {x_add, y_sub, z_add},
+      {x_add, y_add, z_add},
+      {x_add, y_add, z_sub},
+      {x_add, y_sub, z_sub}
+    },
+    {
+      {x_sub, y_sub, z_sub},
+      {x_sub, y_sub, z_add},
+      {x_add, y_sub, z_add},
+      {x_add, y_sub, z_sub}
+    },
+    {
+      {x_sub, y_add, z_sub},
+      {x_sub, y_add, z_add},
+      {x_add, y_add, z_add},
+      {x_add, y_add, z_sub}
+    }
+  };
+
+  return cube;
+}
+
+void draw(SDL_Renderer * renderer, Vertex face[4]) {
   int i;
   for(i = 0; i < 4; ++i) {
-    struct Vertex vertex = face[i];
+    Vertex vertex = face[i];
     int vertex2i = (i == 3 ? i-3 : i+1);
-    struct Vertex vertex2 = face[vertex2i];
+    Vertex vertex2 = face[vertex2i];
     fprintf(fp, "x1=%g|y1=%g|x2=%g|y2=%g\n", vertex.x, vertex.y, vertex2.x, vertex2.y);
     SDL_RenderDrawLine(renderer, vertex.x, vertex.y, vertex2.x, vertex2.y);
   }
@@ -102,13 +162,61 @@ void rotate_vertex_clockwise_x(float * y, float * z, float degrees) {
   *z = tz;
 }
 
-void rotate(struct Vertex face[4]) {
+void rotate(Vertex face[4]) {
   int i;
   for(i = 0; i < 4; ++i) {
     rotate_vertex_clockwise_z(&face[i].x, &face[i].y, 1);
     rotate_vertex_clockwise_y(&face[i].x, &face[i].z, 1);
     rotate_vertex_clockwise_x(&face[i].y, &face[i].z, 1);
   }
+}
+
+void rotate_face_x(Vertex face[4]) {
+  int i;
+  for(i = 0; i < 4; ++i) {
+    rotate_vertex_clockwise_x(&face[i].y, &face[i].z, 5);
+  }
+}
+
+void rotate_face_y(Vertex face[4]) {
+  int i;
+  for(i = 0; i < 4; ++i) {
+    rotate_vertex_clockwise_y(&face[i].x, &face[i].z, 5);
+  }
+}
+
+void rotate_face_z(Vertex face[4]) {
+  int i;
+  for(i = 0; i < 4; ++i) {
+    rotate_vertex_clockwise_z(&face[i].x, &face[i].z, 5);
+  }
+}
+
+void rotate_cube_x(Cube * cube) {
+  rotate_face_x(cube->front);
+  rotate_face_x(cube->back);
+  rotate_face_x(cube->left);
+  rotate_face_x(cube->right);
+  rotate_face_x(cube->top);
+  rotate_face_x(cube->bottom);
+}
+
+void rotate_cube_y(Cube * cube) {
+  rotate_face_y(cube->front);
+  rotate_face_y(cube->back);
+  rotate_face_y(cube->left);
+  rotate_face_y(cube->right);
+  rotate_face_y(cube->top);
+  rotate_face_y(cube->bottom);
+}
+
+void rotate_cube_z(Cube * cube) {
+  rotate_face_z(cube->front);
+  rotate_face_z(cube->back);
+  rotate_face_z(cube->left);
+  rotate_face_z(cube->right);
+  rotate_face_z(cube->top);
+  rotate_face_z(cube->bottom);
 }
 
 int main() {
@@ -122,52 +230,7 @@ int main() {
 
   SDL_bool done = SDL_FALSE;
 
-  int x_sub = X_MID-75;
-  int y_sub = Y_MID-75;
-  int x_add = X_MID+75;
-  int y_add = Y_MID+75;
-
-  struct Vertex front[4] = {
-    {x_sub, y_sub, 75},
-    {x_sub, y_add, 75},
-    {x_add, y_add, 75},
-    {x_add, y_sub, 75}
-  };
-
-  struct Vertex back[4] = {
-    {x_sub, y_sub, -75},
-    {x_sub, y_add, -75},
-    {x_add, y_add, -75},
-    {x_add, y_sub, -75}
-  };
-
-  struct Vertex left[4] = {
-    {x_sub, y_sub, -75},
-    {x_sub, y_add, -75},
-    {x_sub, y_add, 75},
-    {x_sub, y_sub, 75}
-  };
-
-  struct Vertex right[4] = {
-    {x_add, y_sub, 75},
-    {x_add, y_add, 75},
-    {x_add, y_add, -75},
-    {x_add, y_sub, -75}
-  };
-
-  struct Vertex top[4] = {
-    {x_sub, y_sub, -75},
-    {x_sub, y_sub, 75},
-    {x_add, y_sub, 75},
-    {x_add, y_sub, -75}
-  };
-
-  struct Vertex bottom[4] = {
-    {x_sub, y_add, -75},
-    {x_sub, y_add, 75},
-    {x_add, y_add, 75},
-    {x_add, y_add, -75}
-  };
+  Cube cube = create_cube(X_MID, Y_MID, 0);
 
   while(!done) {
     SDL_Event event;
@@ -176,34 +239,61 @@ int main() {
     SDL_RenderClear(renderer);
 
     SDL_SetRenderDrawColor(renderer, 255, 50, 50, SDL_ALPHA_OPAQUE);
-    draw(renderer, front);
+    draw(renderer, cube.front);
 
     SDL_SetRenderDrawColor(renderer, 50, 255, 50, SDL_ALPHA_OPAQUE);
-    draw(renderer, back);
+    draw(renderer, cube.back);
 
     SDL_SetRenderDrawColor(renderer, 50, 50, 255, SDL_ALPHA_OPAQUE);
-    draw(renderer, left);
+    draw(renderer, cube.left);
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-    draw(renderer, right);
+    draw(renderer, cube.right);
 
     SDL_SetRenderDrawColor(renderer, 180, 180, 180, SDL_ALPHA_OPAQUE);
-    draw(renderer, top);
+    draw(renderer, cube.top);
 
     SDL_SetRenderDrawColor(renderer, 20, 30, 40, SDL_ALPHA_OPAQUE);
-    draw(renderer, bottom);
+    draw(renderer, cube.bottom);
 
     SDL_RenderPresent(renderer);
-    rotate(front);
-    rotate(back);
-    rotate(left);
-    rotate(right);
-    rotate(top);
-    rotate(bottom);
+    rotate(cube.front);
+    rotate(cube.back);
+    rotate(cube.left);
+    rotate(cube.right);
+    rotate(cube.top);
+    rotate(cube.bottom);
 
     while(SDL_PollEvent(&event)) {
       if(event.type == SDL_QUIT) {
         done = SDL_TRUE;
+        break;
+      }
+      switch(event.type) {
+      case SDL_QUIT:
+        done = SDL_TRUE;
+        break;
+      case SDL_KEYDOWN:
+        fprintf(fp, "SDL_KEYDOWN\n");
+        switch(event.key.keysym.sym) {
+        case SDLK_LEFT:
+          fprintf(fp, "LEFT\n");
+          rotate_cube_y(&cube);
+          break;
+        case SDLK_RIGHT:
+          fprintf(fp, "RIGHT\n");
+          rotate_cube_y(&cube);
+          break;
+        case SDLK_UP:
+          fprintf(fp, "UP\n");
+          rotate_cube_x(&cube);
+          break;
+        case SDLK_DOWN:
+          fprintf(fp, "DOWN\n");
+          rotate_cube_x(&cube);
+          break;
+        }
+        break;
       }
     }
 
