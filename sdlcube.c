@@ -97,24 +97,10 @@ void draw(SDL_Renderer * renderer, Vertex face[4], Vertex * center, Player * pla
     Vertex vertex = face[i];
     int vertex2i = (i == 3 ? i-3 : i+1);
     Vertex vertex2 = face[vertex2i];
-
-    fprintf(fp, "virtual x1=%g|y1=%g|x2=%g|y2=%g\n", vertex.x, vertex.y, vertex2.x, vertex2.y);
-    /* fprintf(fp, "(fabsf(center->x) * 2)=%g\n(vertex.x - player->position.x)=%g\n", (fabsf(center->x) * 2), (vertex.x - player->position.x)); */
-    /* fprintf(fp, "center.x=%g\ncenter.y=%g\n(fabsf(vertex.x - center->x)=%g\n", center->x, center->y, (fabsf(vertex.x - center->x))); */
-    /* float x1 = vertex.x * ((fabsf(vertex.x - center->x) * 2) / fabsf(vertex.x - player->position.x)); */
-    /* float x2 = vertex2.x * ((fabsf(vertex2.x - center->x) * 2) / fabsf(vertex2.x - player->position.x)); */
-    /* float y1 = vertex.y * ((fabsf(vertex.y - center->y) * 2) / fabsf(vertex.y - player->position.y)); */
-    /* float y2 = vertex2.y * ((fabsf(vertex2.y - center->y) * 2) / fabsf(vertex2.y - player->position.y)); */
-    float x1 = vertex.x;
-    float x2 = vertex2.x;
-    float y1 = vertex.y;
-    float y2 = vertex2.y;
     convert_graph_to_sdl(&x1, &y1);
     convert_graph_to_sdl(&x2, &y2);
-    fprintf(fp, "actual x1=%g|y1=%g|x2=%g|y2=%g\n", x1, y1, x2, y2);
+    fprintf(fp, "x1=%g|y1=%g|x2=%g|y2=%g\n", x1, y1, x2, y2);
     SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
-    convert_sdl_to_graph(&x1, &y1);
-    convert_sdl_to_graph(&x2, &y2);
   }
 }
 
