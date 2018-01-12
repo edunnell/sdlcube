@@ -19,6 +19,7 @@ typedef struct Cube {
   Vertex right[4];
   Vertex top[4];
   Vertex bottom[4];
+  Vertex center;
 } Cube;
 
 FILE * fp;
@@ -68,7 +69,8 @@ Cube create_cube(float x, float y, float z) {
       {x_sub, y_add, z_add},
       {x_add, y_add, z_add},
       {x_add, y_add, z_sub}
-    }
+    },
+    {0, 0, 0}
   };
 
   return cube;
@@ -95,12 +97,12 @@ void convert_graph_to_sdl(float * x, float * y) {
   *y = Y_MID - *y;
 }
 
-void rotate_vertex_clockwise_z(float * x, float * y, float degrees) {
+void rotate_vertex_clockwise_z(float * x, float * y, float * center_x, float * center_y, float degrees) {
   float angle_radians = degrees * (M_PI/180);
   float sin_angle = sin(angle_radians);
   float cos_angle = cos(angle_radians);
-  float tx = *x;
-  float ty = *y;
+  float tx = *x - *center_x;
+  float ty = *y - *center_y;
 
   convert_sdl_to_graph(&tx, &ty);
 
@@ -116,16 +118,16 @@ void rotate_vertex_clockwise_z(float * x, float * y, float degrees) {
   float sy = ty;
   convert_graph_to_sdl(&tx, &ty);
 
-  *x = tx;
-  *y = ty;
+  *x = tx + *center_x;
+  *y = ty + *center_y;
 }
 
-void rotate_vertex_clockwise_y(float * x, float * z, float degrees) {
+void rotate_vertex_clockwise_y(float * x, float * z, float * center_x, float * center_z, float degrees) {
   float angle_radians = degrees * (M_PI/180);
   float sin_angle = sin(angle_radians);
   float cos_angle = cos(angle_radians);
-  float tx = *x;
-  float tz = *z;
+  float tx = *x - *center_x;
+  float tz = *z - *center_z;
 
   tx = tx - X_MID;
 
@@ -137,16 +139,16 @@ void rotate_vertex_clockwise_y(float * x, float * z, float degrees) {
   tx = tzs + txc;
   tz = tzc - txs;
 
-  *x = tx + X_MID;
-  *z = tz;
+  *x = tx + X_MID + *center_x;
+  *z = tz + *center_z;
 }
 
-void rotate_vertex_clockwise_x(float * y, float * z, float degrees) {
+void rotate_vertex_clockwise_x(float * y, float * z, float * center_y, float * center_z, float degrees) {
   float angle_radians = degrees * (M_PI/180);
   float sin_angle = sin(angle_radians);
   float cos_angle = cos(angle_radians);
-  float ty = *y;
-  float tz = *z;
+  float ty = *y - *center_y;
+  float tz = *z - *center_z;
 
   ty = Y_MID - ty;
 
@@ -158,65 +160,133 @@ void rotate_vertex_clockwise_x(float * y, float * z, float degrees) {
   ty = tyc - tzs;
   tz = tys + tzc;
 
-  *y = Y_MID - ty;
-  *z = tz;
+  *y = Y_MID - ty + *center_y;
+  *z = tz + *center_z;
 }
 
-void rotate(Vertex face[4]) {
+void rotate(Vertex face[4], Vertex * center) {
   int i;
   for(i = 0; i < 4; ++i) {
-    rotate_vertex_clockwise_z(&face[i].x, &face[i].y, 1);
-    rotate_vertex_clockwise_y(&face[i].x, &face[i].z, 1);
-    rotate_vertex_clockwise_x(&face[i].y, &face[i].z, 1);
+    rotate_vertex_clockwise_z(&face[i].x, &face[i].y, &center->x, &center->y, 1);
+    rotate_vertex_clockwise_y(&face[i].x, &face[i].z, &center->x, &center->z, 1);
+    rotate_vertex_clockwise_x(&face[i].y, &face[i].z, &center->y, &center->z, 1);
   }
 }
 
-void rotate_face_x(Vertex face[4]) {
+void rotate_face_x(Vertex face[4], Vertex * center) {
   int i;
   for(i = 0; i < 4; ++i) {
-    rotate_vertex_clockwise_x(&face[i].y, &face[i].z, 5);
+    rotate_vertex_clockwise_x(&face[i].y, &face[i].z, &center->y, &center->z, 5);
   }
 }
 
-void rotate_face_y(Vertex face[4]) {
+void rotate_face_y(Vertex face[4], Vertex * center) {
   int i;
   for(i = 0; i < 4; ++i) {
-    rotate_vertex_clockwise_y(&face[i].x, &face[i].z, 5);
+    rotate_vertex_clockwise_y(&face[i].x, &face[i].z, &center->x, &center->z, 5);
   }
 }
 
-void rotate_face_z(Vertex face[4]) {
+void rotate_face_z(Vertex face[4], Vertex * center) {
   int i;
   for(i = 0; i < 4; ++i) {
-    rotate_vertex_clockwise_z(&face[i].x, &face[i].z, 5);
+    rotate_vertex_clockwise_z(&face[i].x, &face[i].y, &center->x, &center->y, 5);
   }
 }
 
 void rotate_cube_x(Cube * cube) {
-  rotate_face_x(cube->front);
-  rotate_face_x(cube->back);
-  rotate_face_x(cube->left);
-  rotate_face_x(cube->right);
-  rotate_face_x(cube->top);
-  rotate_face_x(cube->bottom);
+  rotate_face_x(cube->front, &cube->center);
+  rotate_face_x(cube->back, &cube->center);
+  rotate_face_x(cube->left, &cube->center);
+  rotate_face_x(cube->right, &cube->center);
+  rotate_face_x(cube->top, &cube->center);
+  rotate_face_x(cube->bottom, &cube->center);
 }
 
 void rotate_cube_y(Cube * cube) {
-  rotate_face_y(cube->front);
-  rotate_face_y(cube->back);
-  rotate_face_y(cube->left);
-  rotate_face_y(cube->right);
-  rotate_face_y(cube->top);
-  rotate_face_y(cube->bottom);
+  rotate_face_y(cube->front, &cube->center);
+  rotate_face_y(cube->back, &cube->center);
+  rotate_face_y(cube->left, &cube->center);
+  rotate_face_y(cube->right, &cube->center);
+  rotate_face_y(cube->top, &cube->center);
+  rotate_face_y(cube->bottom, &cube->center);
 }
 
 void rotate_cube_z(Cube * cube) {
-  rotate_face_z(cube->front);
-  rotate_face_z(cube->back);
-  rotate_face_z(cube->left);
-  rotate_face_z(cube->right);
-  rotate_face_z(cube->top);
-  rotate_face_z(cube->bottom);
+  rotate_face_z(cube->front, &cube->center);
+  rotate_face_z(cube->back, &cube->center);
+  rotate_face_z(cube->left, &cube->center);
+  rotate_face_z(cube->right, &cube->center);
+  rotate_face_z(cube->top, &cube->center);
+  rotate_face_z(cube->bottom, &cube->center);
+}
+
+void move_face_left(Vertex face[4]) {
+  int i;
+  for(i = 0; i < 4; ++i) {
+    face[i].x -= 5;
+  }
+}
+
+void move_face_right(Vertex face[4]) {
+  int i;
+  for(i = 0; i < 4; ++i) {
+    face[i].x += 5;
+  }
+}
+
+void move_face_forward(Vertex face[4]) {
+  int i;
+  for(i = 0; i < 4; ++i) {
+    face[i].z += 5;
+  }
+}
+
+void move_face_backward(Vertex face[4]) {
+  int i;
+  for(i = 0; i < 4; ++i) {
+    face[i].z -= 5;
+  }
+}
+
+void move_left(Cube * cube) {
+  move_face_left(cube->front);
+  move_face_left(cube->back);
+  move_face_left(cube->left);
+  move_face_left(cube->right);
+  move_face_left(cube->top);
+  move_face_left(cube->bottom);
+  cube->center.x -= 5;
+}
+
+void move_right(Cube * cube) {
+  move_face_right(cube->front);
+  move_face_right(cube->back);
+  move_face_right(cube->left);
+  move_face_right(cube->right);
+  move_face_right(cube->top);
+  move_face_right(cube->bottom);
+  cube->center.x += 5;
+}
+
+void move_forward(Cube * cube) {
+  move_face_forward(cube->front);
+  move_face_forward(cube->back);
+  move_face_forward(cube->left);
+  move_face_forward(cube->right);
+  move_face_forward(cube->top);
+  move_face_forward(cube->bottom);
+  cube->center.z += 5;
+}
+
+void move_backward(Cube * cube) {
+  move_face_backward(cube->front);
+  move_face_backward(cube->back);
+  move_face_backward(cube->left);
+  move_face_backward(cube->right);
+  move_face_backward(cube->top);
+  move_face_backward(cube->bottom);
+  cube->center.z -= 5;
 }
 
 int main() {
@@ -235,7 +305,7 @@ int main() {
   while(!done) {
     SDL_Event event;
 
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+    SDL_SetRenderDrawColor(renderer, 110, 220, 20, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(renderer);
 
     SDL_SetRenderDrawColor(renderer, 255, 50, 50, SDL_ALPHA_OPAQUE);
@@ -257,12 +327,12 @@ int main() {
     draw(renderer, cube.bottom);
 
     SDL_RenderPresent(renderer);
-    rotate(cube.front);
-    rotate(cube.back);
-    rotate(cube.left);
-    rotate(cube.right);
-    rotate(cube.top);
-    rotate(cube.bottom);
+    rotate(cube.front, &cube.center);
+    rotate(cube.back, &cube.center);
+    rotate(cube.left, &cube.center);
+    rotate(cube.right, &cube.center);
+    rotate(cube.top, &cube.center);
+    rotate(cube.bottom, &cube.center);
 
     while(SDL_PollEvent(&event)) {
       if(event.type == SDL_QUIT) {
@@ -278,19 +348,19 @@ int main() {
         switch(event.key.keysym.sym) {
         case SDLK_LEFT:
           fprintf(fp, "LEFT\n");
-          rotate_cube_y(&cube);
+          move_left(&cube);
           break;
         case SDLK_RIGHT:
           fprintf(fp, "RIGHT\n");
-          rotate_cube_y(&cube);
+          move_right(&cube);
           break;
         case SDLK_UP:
           fprintf(fp, "UP\n");
-          rotate_cube_x(&cube);
+          move_forward(&cube);
           break;
         case SDLK_DOWN:
           fprintf(fp, "DOWN\n");
-          rotate_cube_x(&cube);
+          move_backward(&cube);
           break;
         }
         break;
