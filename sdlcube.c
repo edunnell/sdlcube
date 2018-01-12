@@ -12,6 +12,11 @@ typedef struct Vertex {
   float z;
 } Vertex;
 
+typedef struct Player {
+  Vertex position;
+  int angle;
+} Player;
+
 typedef struct Cube {
   Vertex front[4];
   Vertex back[4];
@@ -70,21 +75,10 @@ Cube create_cube(float x, float y, float z) {
       {x_add, y_add, z_add},
       {x_add, y_add, z_sub}
     },
-    {0, 0, 0}
+    {x, y, z}
   };
 
   return cube;
-}
-
-void draw(SDL_Renderer * renderer, Vertex face[4]) {
-  int i;
-  for(i = 0; i < 4; ++i) {
-    Vertex vertex = face[i];
-    int vertex2i = (i == 3 ? i-3 : i+1);
-    Vertex vertex2 = face[vertex2i];
-    fprintf(fp, "x1=%g|y1=%g|x2=%g|y2=%g\n", vertex.x, vertex.y, vertex2.x, vertex2.y);
-    SDL_RenderDrawLine(renderer, vertex.x, vertex.y, vertex2.x, vertex2.y);
-  }
 }
 
 void convert_sdl_to_graph(float * x, float * y) {
@@ -97,14 +91,41 @@ void convert_graph_to_sdl(float * x, float * y) {
   *y = Y_MID - *y;
 }
 
+void draw(SDL_Renderer * renderer, Vertex face[4], Vertex * center, Player * player) {
+  int i;
+  for(i = 0; i < 4; ++i) {
+    Vertex vertex = face[i];
+    int vertex2i = (i == 3 ? i-3 : i+1);
+    Vertex vertex2 = face[vertex2i];
+
+    fprintf(fp, "virtual x1=%g|y1=%g|x2=%g|y2=%g\n", vertex.x, vertex.y, vertex2.x, vertex2.y);
+    /* fprintf(fp, "(fabsf(center->x) * 2)=%g\n(vertex.x - player->position.x)=%g\n", (fabsf(center->x) * 2), (vertex.x - player->position.x)); */
+    /* fprintf(fp, "center.x=%g\ncenter.y=%g\n(fabsf(vertex.x - center->x)=%g\n", center->x, center->y, (fabsf(vertex.x - center->x))); */
+    /* float x1 = vertex.x * ((fabsf(vertex.x - center->x) * 2) / fabsf(vertex.x - player->position.x)); */
+    /* float x2 = vertex2.x * ((fabsf(vertex2.x - center->x) * 2) / fabsf(vertex2.x - player->position.x)); */
+    /* float y1 = vertex.y * ((fabsf(vertex.y - center->y) * 2) / fabsf(vertex.y - player->position.y)); */
+    /* float y2 = vertex2.y * ((fabsf(vertex2.y - center->y) * 2) / fabsf(vertex2.y - player->position.y)); */
+    float x1 = vertex.x;
+    float x2 = vertex2.x;
+    float y1 = vertex.y;
+    float y2 = vertex2.y;
+    convert_graph_to_sdl(&x1, &y1);
+    convert_graph_to_sdl(&x2, &y2);
+    fprintf(fp, "actual x1=%g|y1=%g|x2=%g|y2=%g\n", x1, y1, x2, y2);
+    SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
+    convert_sdl_to_graph(&x1, &y1);
+    convert_sdl_to_graph(&x2, &y2);
+  }
+}
+
 void rotate_vertex_clockwise_z(float * x, float * y, float * center_x, float * center_y, float degrees) {
   float angle_radians = degrees * (M_PI/180);
   float sin_angle = sin(angle_radians);
   float cos_angle = cos(angle_radians);
+  float sx = *x;
+  float sy = *y;
   float tx = *x - *center_x;
   float ty = *y - *center_y;
-
-  convert_sdl_to_graph(&tx, &ty);
 
   float txc = tx * cos_angle;
   float tys = ty * sin_angle;
@@ -113,10 +134,6 @@ void rotate_vertex_clockwise_z(float * x, float * y, float * center_x, float * c
 
   tx = txc - tys;
   ty = txs + tyc;
-
-  float sx = tx;
-  float sy = ty;
-  convert_graph_to_sdl(&tx, &ty);
 
   *x = tx + *center_x;
   *y = ty + *center_y;
@@ -129,8 +146,6 @@ void rotate_vertex_clockwise_y(float * x, float * z, float * center_x, float * c
   float tx = *x - *center_x;
   float tz = *z - *center_z;
 
-  tx = tx - X_MID;
-
   float txc = tx * cos_angle;
   float tzs = tz * sin_angle;
   float txs = tx * sin_angle;
@@ -139,7 +154,7 @@ void rotate_vertex_clockwise_y(float * x, float * z, float * center_x, float * c
   tx = tzs + txc;
   tz = tzc - txs;
 
-  *x = tx + X_MID + *center_x;
+  *x = tx + *center_x;
   *z = tz + *center_z;
 }
 
@@ -150,8 +165,6 @@ void rotate_vertex_clockwise_x(float * y, float * z, float * center_y, float * c
   float ty = *y - *center_y;
   float tz = *z - *center_z;
 
-  ty = Y_MID - ty;
-
   float tyc = ty * cos_angle;
   float tzs = tz * sin_angle;
   float tys = ty * sin_angle;
@@ -160,7 +173,7 @@ void rotate_vertex_clockwise_x(float * y, float * z, float * center_y, float * c
   ty = tyc - tzs;
   tz = tys + tzc;
 
-  *y = Y_MID - ty + *center_y;
+  *y = ty + *center_y;
   *z = tz + *center_z;
 }
 
@@ -300,7 +313,12 @@ int main() {
 
   SDL_bool done = SDL_FALSE;
 
-  Cube cube = create_cube(X_MID, Y_MID, 0);
+  Player player = {
+    {X_MID, Y_MID, 0},
+    90
+  };
+
+  Cube cube = create_cube(0, 0, 0);
 
   while(!done) {
     SDL_Event event;
@@ -309,22 +327,22 @@ int main() {
     SDL_RenderClear(renderer);
 
     SDL_SetRenderDrawColor(renderer, 255, 50, 50, SDL_ALPHA_OPAQUE);
-    draw(renderer, cube.front);
+    draw(renderer, cube.front, &cube.center, &player);
 
     SDL_SetRenderDrawColor(renderer, 50, 255, 50, SDL_ALPHA_OPAQUE);
-    draw(renderer, cube.back);
+    draw(renderer, cube.back, &cube.center, &player);
 
     SDL_SetRenderDrawColor(renderer, 50, 50, 255, SDL_ALPHA_OPAQUE);
-    draw(renderer, cube.left);
+    draw(renderer, cube.left, &cube.center, &player);
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-    draw(renderer, cube.right);
+    draw(renderer, cube.right, &cube.center, &player);
 
     SDL_SetRenderDrawColor(renderer, 180, 180, 180, SDL_ALPHA_OPAQUE);
-    draw(renderer, cube.top);
+    draw(renderer, cube.top, &cube.center, &player);
 
     SDL_SetRenderDrawColor(renderer, 20, 30, 40, SDL_ALPHA_OPAQUE);
-    draw(renderer, cube.bottom);
+    draw(renderer, cube.bottom, &cube.center, &player);
 
     SDL_RenderPresent(renderer);
     rotate(cube.front, &cube.center);
