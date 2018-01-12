@@ -163,7 +163,7 @@ void rotate_vertex_clockwise_x(float * y, float * z, float * center_y, float * c
   *z = tz + *center_z;
 }
 
-void rotate(Vertex face[4], Vertex * center) {
+void rotate_face(Vertex face[4], Vertex * center) {
   int i;
   for(i = 0; i < 4; ++i) {
     rotate_vertex_clockwise_z(&face[i].x, &face[i].y, &center->x, &center->y, 1);
@@ -191,6 +191,15 @@ void rotate_face_z(Vertex face[4], Vertex * center) {
   for(i = 0; i < 4; ++i) {
     rotate_vertex_clockwise_z(&face[i].x, &face[i].y, &center->x, &center->y, 5);
   }
+}
+
+void rotate_cube(Cube * cube) {
+  rotate_face(cube->front, &cube->center);
+  rotate_face(cube->back, &cube->center);
+  rotate_face(cube->left, &cube->center);
+  rotate_face(cube->right, &cube->center);
+  rotate_face(cube->top, &cube->center);
+  rotate_face(cube->bottom, &cube->center);
 }
 
 void rotate_cube_x(Cube * cube) {
@@ -331,12 +340,7 @@ int main() {
     draw(renderer, cube.bottom, &cube.center, &player);
 
     SDL_RenderPresent(renderer);
-    rotate(cube.front, &cube.center);
-    rotate(cube.back, &cube.center);
-    rotate(cube.left, &cube.center);
-    rotate(cube.right, &cube.center);
-    rotate(cube.top, &cube.center);
-    rotate(cube.bottom, &cube.center);
+    rotate_cube(&cube);
 
     while(SDL_PollEvent(&event)) {
       if(event.type == SDL_QUIT) {
