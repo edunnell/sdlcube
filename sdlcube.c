@@ -91,16 +91,52 @@ void convert_graph_to_sdl(float * x, float * y) {
   *y = Y_MID - *y;
 }
 
+float distance(Player * player, Vertex * vertex) {
+  float x = player->position.x - vertex->x;
+  float y = player->position.y - vertex->y;
+  float z = player->position.z - vertex->z;
+  float xyz = (x * x) + (y * y) + (z * z);
+  fprintf(fp, "distance: %g\n", sqrtf(xyz));
+  return sqrtf(xyz);
+}
+
+void scale(Vertex * vertex, Player * player) {
+  fprintf(fp, "b: vertex->x: %g vertex->z: %g\n", vertex->x, vertex->z);
+  float distance;
+  if(vertex->z > player->position.z) {
+    distance = vertex->z - player->position.z;
+  } else {
+    distance = player->position.z - vertex->z;
+  }
+  float scale_factor_x = (fabsf(vertex->x)) / distance;
+  vertex->x = vertex->x * scale_factor_x;
+  fprintf(fp, "a: vertex->x: %g vertex->z: %g\n", vertex->x, vertex->z);
+
+  float angle_a_radians = 29.5 * (M_PI/180);
+  float sin_a = sin(angle_a_radians);
+  float angle_b_radians = (180 - (29.5 + 90)) * (M_PI/180);
+  float sin_b = sin(angle_b_radians);
+  float y_max_offset = (distance * sin_a) / sin_b;
+  float scale_factor_y = (fabsf(vertex->y)) / y_max_offset;
+  vertex->y = vertex->y * scale_factor_y;
+}
+
 void draw(SDL_Renderer * renderer, Vertex face[4], Vertex * center, Player * player) {
   int i;
   for(i = 0; i < 4; ++i) {
     Vertex vertex = face[i];
     int vertex2i = (i == 3 ? i-3 : i+1);
     Vertex vertex2 = face[vertex2i];
+    scale(&vertex, player);
+    scale(&vertex2, player);
+
+    float x1 = vertex.x, x2 = vertex2.x;
+    float y1 = vertex.y, y2 = vertex2.y;
+    float z1 = vertex.z, z2 = vertex2.z;
+
     convert_graph_to_sdl(&x1, &y1);
     convert_graph_to_sdl(&x2, &y2);
-    fprintf(fp, "x1=%g|y1=%g|x2=%g|y2=%g\n", x1, y1, x2, y2);
-    SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
+    SDL_RenderDrawLine(renderer, x1 - player->position.x, y1, x2 - player->position.x, y2);
   }
 }
 
@@ -246,55 +282,31 @@ void move_face_right(Vertex face[4]) {
 void move_face_forward(Vertex face[4]) {
   int i;
   for(i = 0; i < 4; ++i) {
-    face[i].z += 5;
+    face[i].z += 50;
   }
 }
 
 void move_face_backward(Vertex face[4]) {
   int i;
   for(i = 0; i < 4; ++i) {
-    face[i].z -= 5;
+    face[i].z -= 50;
   }
 }
 
-void move_left(Cube * cube) {
-  move_face_left(cube->front);
-  move_face_left(cube->back);
-  move_face_left(cube->left);
-  move_face_left(cube->right);
-  move_face_left(cube->top);
-  move_face_left(cube->bottom);
-  cube->center.x -= 5;
+void move_left(Player * player) {
+  player->position.x -= 50;
 }
 
-void move_right(Cube * cube) {
-  move_face_right(cube->front);
-  move_face_right(cube->back);
-  move_face_right(cube->left);
-  move_face_right(cube->right);
-  move_face_right(cube->top);
-  move_face_right(cube->bottom);
-  cube->center.x += 5;
+void move_right(Player * player) {
+  player->position.x += 50;
 }
 
-void move_forward(Cube * cube) {
-  move_face_forward(cube->front);
-  move_face_forward(cube->back);
-  move_face_forward(cube->left);
-  move_face_forward(cube->right);
-  move_face_forward(cube->top);
-  move_face_forward(cube->bottom);
-  cube->center.z += 5;
+void move_forward(Player * player) {
+  player->position.z -= 50;
 }
 
-void move_backward(Cube * cube) {
-  move_face_backward(cube->front);
-  move_face_backward(cube->back);
-  move_face_backward(cube->left);
-  move_face_backward(cube->right);
-  move_face_backward(cube->top);
-  move_face_backward(cube->bottom);
-  cube->center.z -= 5;
+void move_backward(Player * player) {
+  player->position.z += 50;
 }
 
 int main() {
@@ -309,11 +321,13 @@ int main() {
   SDL_bool done = SDL_FALSE;
 
   Player player = {
-    {X_MID, Y_MID, 0},
+    {0, 0, 0},
     90
   };
 
-  Cube cube = create_cube(0, 0, 0);
+  Cube cube = create_cube(0, 0, -1000);
+
+  Cube cube2 = create_cube(500, 500, -1000);
 
   while(!done) {
     SDL_Event event;
@@ -323,21 +337,23 @@ int main() {
 
     SDL_SetRenderDrawColor(renderer, 255, 50, 50, SDL_ALPHA_OPAQUE);
     draw(renderer, cube.front, &cube.center, &player);
-
+    /* draw(renderer, cube2.front, &cube2.center, &player); */
     SDL_SetRenderDrawColor(renderer, 50, 255, 50, SDL_ALPHA_OPAQUE);
     draw(renderer, cube.back, &cube.center, &player);
-
+    /* draw(renderer, cube2.back, &cube2.center, &player); */
     SDL_SetRenderDrawColor(renderer, 50, 50, 255, SDL_ALPHA_OPAQUE);
     draw(renderer, cube.left, &cube.center, &player);
-
+    /* draw(renderer, cube2.left, &cube2.center, &player); */
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
     draw(renderer, cube.right, &cube.center, &player);
-
+    /* draw(renderer, cube2.right, &cube2.center, &player); */
     SDL_SetRenderDrawColor(renderer, 180, 180, 180, SDL_ALPHA_OPAQUE);
     draw(renderer, cube.top, &cube.center, &player);
-
+    /* draw(renderer, cube2.top, &cube2.center, &player); */
     SDL_SetRenderDrawColor(renderer, 20, 30, 40, SDL_ALPHA_OPAQUE);
     draw(renderer, cube.bottom, &cube.center, &player);
+    /* draw(renderer, cube2.bottom, &cube2.center, &player); */
+    fprintf(fp, "\n\n");
 
     SDL_RenderPresent(renderer);
     rotate_cube(&cube);
@@ -356,19 +372,19 @@ int main() {
         switch(event.key.keysym.sym) {
         case SDLK_LEFT:
           fprintf(fp, "LEFT\n");
-          move_left(&cube);
+          move_left(&player);
           break;
         case SDLK_RIGHT:
           fprintf(fp, "RIGHT\n");
-          move_right(&cube);
+          move_right(&player);
           break;
         case SDLK_UP:
           fprintf(fp, "UP\n");
-          move_forward(&cube);
+          move_forward(&player);
           break;
         case SDLK_DOWN:
           fprintf(fp, "DOWN\n");
-          move_backward(&cube);
+          move_backward(&player);
           break;
         }
         break;
