@@ -91,47 +91,27 @@ void convert_graph_to_sdl(float * x, float * y) {
   *y = Y_MID - *y;
 }
 
-float distance(Player * player, Vertex * vertex) {
-  float x = player->position.x - vertex->x;
-  float y = player->position.y - vertex->y;
-  float z = player->position.z - vertex->z;
-  float xyz = (x * x) + (y * y) + (z * z);
-  fprintf(fp, "distance: %g\n", sqrtf(xyz));
-  return sqrtf(xyz);
-}
-
-void scale(Vertex * vertex, Player * player) {
-  fprintf(fp, "b: vertex->x: %g vertex->z: %g\n", vertex->x, vertex->z);
-  float distance;
-  if(vertex->z > player->position.z) {
-    distance = vertex->z - player->position.z;
-  } else {
-    distance = player->position.z - vertex->z;
-  }
-  float scale_factor_x = (fabsf(vertex->x)) / distance;
-  vertex->x = vertex->x * scale_factor_x;
-  fprintf(fp, "a: vertex->x: %g vertex->z: %g\n", vertex->x, vertex->z);
-
-  float angle_a_radians = 29.5 * (M_PI/180);
-  float sin_a = sin(angle_a_radians);
-  float angle_b_radians = (180 - (29.5 + 90)) * (M_PI/180);
-  float sin_b = sin(angle_b_radians);
-  float y_max_offset = (distance * sin_a) / sin_b;
-  float scale_factor_y = (fabsf(vertex->y)) / y_max_offset;
-  vertex->y = vertex->y * scale_factor_y;
-}
-
 void draw(SDL_Renderer * renderer, Vertex face[4], Vertex * center, Player * player) {
   int i;
   for(i = 0; i < 4; ++i) {
     Vertex vertex = face[i];
     int vertex2i = (i == 3 ? i-3 : i+1);
     Vertex vertex2 = face[vertex2i];
-    scale(&vertex, player);
-    scale(&vertex2, player);
 
-    float x1 = vertex.x, x2 = vertex2.x;
-    float y1 = vertex.y, y2 = vertex2.y;
+    float distance1, distance2;
+    if(vertex.z > player->position.z) {
+      distance1 = vertex.z - player->position.z;
+    } else {
+      distance1 = player->position.z - vertex.z;
+    }
+    if(vertex2.z > player->position.z) {
+      distance2 = vertex2.z - player->position.z;
+    } else {
+      distance2 = player->position.z - vertex2.z;
+    }
+
+    float x1 = vertex.x/(X_MID/distance1), x2 = vertex2.x/(X_MID/distance2);
+    float y1 = vertex.y/(Y_MID/distance1), y2 = vertex2.y/(Y_MID/distance2);
     float z1 = vertex.z, z2 = vertex2.z;
 
     convert_graph_to_sdl(&x1, &y1);
@@ -325,9 +305,7 @@ int main() {
     90
   };
 
-  Cube cube = create_cube(0, 0, -1000);
-
-  Cube cube2 = create_cube(500, 500, -1000);
+  Cube cube = create_cube(0, 0, 100);
 
   while(!done) {
     SDL_Event event;
@@ -337,22 +315,21 @@ int main() {
 
     SDL_SetRenderDrawColor(renderer, 255, 50, 50, SDL_ALPHA_OPAQUE);
     draw(renderer, cube.front, &cube.center, &player);
-    /* draw(renderer, cube2.front, &cube2.center, &player); */
+
     SDL_SetRenderDrawColor(renderer, 50, 255, 50, SDL_ALPHA_OPAQUE);
     draw(renderer, cube.back, &cube.center, &player);
-    /* draw(renderer, cube2.back, &cube2.center, &player); */
+
     SDL_SetRenderDrawColor(renderer, 50, 50, 255, SDL_ALPHA_OPAQUE);
     draw(renderer, cube.left, &cube.center, &player);
-    /* draw(renderer, cube2.left, &cube2.center, &player); */
+
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
     draw(renderer, cube.right, &cube.center, &player);
-    /* draw(renderer, cube2.right, &cube2.center, &player); */
+
     SDL_SetRenderDrawColor(renderer, 180, 180, 180, SDL_ALPHA_OPAQUE);
     draw(renderer, cube.top, &cube.center, &player);
-    /* draw(renderer, cube2.top, &cube2.center, &player); */
+
     SDL_SetRenderDrawColor(renderer, 20, 30, 40, SDL_ALPHA_OPAQUE);
     draw(renderer, cube.bottom, &cube.center, &player);
-    /* draw(renderer, cube2.bottom, &cube2.center, &player); */
     fprintf(fp, "\n\n");
 
     SDL_RenderPresent(renderer);
@@ -370,18 +347,22 @@ int main() {
       case SDL_KEYDOWN:
         fprintf(fp, "SDL_KEYDOWN\n");
         switch(event.key.keysym.sym) {
+        case SDLK_a:
         case SDLK_LEFT:
           fprintf(fp, "LEFT\n");
           move_left(&player);
           break;
+        case SDLK_d:
         case SDLK_RIGHT:
           fprintf(fp, "RIGHT\n");
           move_right(&player);
           break;
+        case SDLK_w:
         case SDLK_UP:
           fprintf(fp, "UP\n");
           move_forward(&player);
           break;
+        case SDLK_s:
         case SDLK_DOWN:
           fprintf(fp, "DOWN\n");
           move_backward(&player);
